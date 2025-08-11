@@ -78,7 +78,7 @@ jobs:
         run: npm run package
 
       - name: Create Release
-        ncipollo/release-action@v1 uses:
+        uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.final-version.outputs.tag_name }}
           name: Release ${{ steps.final-version.outputs.tag_name }}
