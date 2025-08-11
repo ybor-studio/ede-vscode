@@ -1,0 +1,97 @@
+name: Release VSCode Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Configure Git
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+      - name: Bump version and create tag
+        if: github.event_name == 'workflow_dispatch'
+        id: version-bump
+        run: |
+          npm version ${{ github.event.inputs.version_type }} --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "new_version=v$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          git add package.json
+          git commit -m "Bump version to v$NEW_VERSION"
+          git tag "v$NEW_VERSION"
+          git push origin main
+          git push origin "v$NEW_VERSION"
+        
+      - name: Get package version (for tag releases)
+        if: github.event_name == 'push'
+        id: package-version-tag
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        
+      - name: Set version output
+        id: final-version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "version=${{ steps.version-bump.outputs.version }}" >> $GITHUB_OUTPUT
+            echo "tag_name=${{ steps.version-bump.outputs.new_version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ steps.package-version-tag.outputs.version }}" >> $GITHUB_OUTPUT
+            echo "tag_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+        
+      - name: Package extension
+        run: npm run package
+        
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.final-version.outputs.tag_name }}
+          release_name: Release ${{ steps.final-version.outputs.tag_name }}
+          draft: false
+          prerelease: false
+          
+      - name: Upload VSIX to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./ede-vscode-${{ steps.final-version.outputs.version }}.vsix
+          asset_name: ede-vscode-${{ steps.final-version.outputs.version }}.vsix
+          asset_content_type: application/zip

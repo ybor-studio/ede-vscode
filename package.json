@@ -1,0 +1,42 @@
+{
+  "name": "ede-vscode",
+  "displayName": "Ybor Studio EDE VSCode Extension",
+  "description": "The Ybor Studio EDE VSCode Extension",
+  "version": "0.0.1",
+  "publisher": "ybor-studio",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ybor-studio/ede-vscode"
+  },
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "vscode": "^1.102.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ede-vscode.helloWorld",
+        "title": "Hello World"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package --allow-star-activation"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.102.0",
+    "@types/node": "^18.x",
+    "typescript": "^4.9.4",
+    "@vscode/vsce": "^3.6.0"
+  }
+}
