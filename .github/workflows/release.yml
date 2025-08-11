@@ -78,22 +78,10 @@ jobs:
         run: npm run package
 
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: ${{ steps.final-version.outputs.tag_name }}
-          release_name: Release ${{ steps.final-version.outputs.tag_name }}
+          tag: ${{ steps.final-version.outputs.tag_name }}
+          name: Release ${{ steps.final-version.outputs.tag_name }}
+          artifacts: ./ede-vscode-${{ steps.final-version.outputs.version }}.vsix
           draft: false
           prerelease: false
-
-      - name: Upload VSIX to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./ede-vscode-${{ steps.final-version.outputs.version }}.vsix
-          asset_name: ede-vscode-${{ steps.final-version.outputs.version }}.vsix
-          asset_content_type: application/zip
