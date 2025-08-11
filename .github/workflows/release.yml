@@ -82,6 +82,6 @@ jobs:
         with:
           tag: ${{ steps.final-version.outputs.tag_name }}
           name: Release ${{ steps.final-version.outputs.tag_name }}
-          artifacts: ./ede-vscode-${{ steps.final-version.outputs.version }}.vsix
+          artifacts: ./ede-vscode-${{ steps.final-version.outputs.tag_name }}.vsix
           draft: false
           prerelease: false
