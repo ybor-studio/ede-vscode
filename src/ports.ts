@@ -12,6 +12,13 @@ export async function activatePorts(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.workspace.onDidChangeTunnels(async () => {
+      const tunnels = await vscode.workspace.tunnels;
+      console.log("!!! tunnels changed", { tunnels });
+    })
+  );
+
+  context.subscriptions.push(
     await vscode.workspace.registerTunnelProvider(new TunnelProvider(), {
       environmentTunnels: [new Tunnel()],
       tunnelFeatures: {
