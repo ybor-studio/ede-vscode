@@ -19,10 +19,15 @@
   "activationEvents": [
     "*"
   ],
+  "extensionKind": [
+    "workspace"
+  ],
   "enabledApiProposals": [
     "resolvers",
+    "portsAttributes",
     "tunnelFactory",
-    "tunnels"
+    "tunnels",
+    "workspaceTrust"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -47,5 +52,8 @@
     "@vscode/dts": "^0.4.1",
     "@vscode/vsce": "^3.6.0",
     "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "handlebars": "^4.7.8"
   }
 }
