@@ -1,8 +1,15 @@
 import * as vscode from "vscode";
 import { log } from "./log";
 import Handlebars from "handlebars";
+import { isOpen } from "./sockets";
 
-const { EDE_PROXY_PORTS = "", EDE_PROXY_URI = "" } = process.env;
+// TODO: infer cmd from local port
+// TODO: infer pid from local port
+
+const {
+  EDE_PROXY_PORTS = "3000,8080",
+  EDE_PROXY_URI = "http://localhost:{{port}}",
+} = process.env;
 
 const LOCAL = Handlebars.compile<{ port: string | number }>(
   "localhost:{{port}}"
@@ -13,36 +20,13 @@ export async function activateTunnels(context: vscode.ExtensionContext) {
   log("Activating Tunnels...", { EDE_PROXY_PORTS, EDE_PROXY_URI });
 
   const provider = new TunnelProvider(context);
-
-  log("Registering Tunnel Provider...");
-  context.subscriptions.push(
-    await vscode.workspace
-      .registerTunnelProvider(provider, provider.tunnelInformation)
-      .then((disposable) =>
-        vscode.commands
-          .executeCommand("setContext", "forwardedPortsViewEnabled", true)
-          .then(() => {
-            log("Registering Ports Attributes Provider...");
-            context.subscriptions.push(
-              vscode.workspace.registerPortAttributesProvider(
-                provider.portSelector,
-                provider
-              )
-            );
-
-            return disposable;
-          })
-      )
+  await provider.register();
+  await provider.registerCommand(
+    "ede-vscode.tunnel.open",
+    (portInput?: string) => provider.tunnelOpen(portInput)
   );
-
-  log("Registering Commands...");
-  context.subscriptions.push(
-    vscode.commands.registerCommand("ede-vscode.ports.scan", async () => {
-      vscode.window.showInformationMessage("Scanning for open ports...");
-      provider.tunnelInformation.environmentTunnels?.map((t) => {
-        log(`Tunneling ${t.localAddress}`);
-      });
-    })
+  await provider.registerCommand("ede-vscode.tunnel.scan", () =>
+    provider.tunnelScan()
   );
 
   log("Tunnels Activated!");
@@ -51,23 +35,117 @@ export async function activateTunnels(context: vscode.ExtensionContext) {
 class TunnelProvider
   implements vscode.TunnelProvider, vscode.PortAttributesProvider
 {
-  // private tunnels: vscode.Tunnel[] = [];
   constructor(private context: vscode.ExtensionContext) {}
 
+  async register() {
+    log("Registering Tunnel Provider...");
+    this.context.subscriptions.push(
+      await vscode.workspace
+        .registerTunnelProvider(this, this.tunnelInformation)
+        .then((disposable) =>
+          vscode.commands
+            .executeCommand("setContext", "forwardedPortsViewEnabled", true)
+            .then(() => {
+              log("Registering Ports Attributes Provider...");
+              this.context.subscriptions.push(
+                vscode.workspace.registerPortAttributesProvider(
+                  this.portSelector,
+                  this
+                )
+              );
+
+              return disposable;
+            })
+        )
+    );
+  }
+
+  async registerCommand(command: string, handler: () => Promise<void>) {
+    log("Registering Command", command);
+    this.context.subscriptions.push(
+      vscode.commands.registerCommand(command, handler)
+    );
+  }
+
+  async tunnelOpen(portInput?: string): Promise<void> {
+    log("Executing Tunnel Open Command...");
+
+    if (!portInput) {
+      portInput = await vscode.window.showQuickPick(
+        this.tunnelInformation.environmentTunnels?.map((t) =>
+          t.localAddress.toString()
+        ) || [],
+        {
+          placeHolder: "Select a port to open a tunnel to",
+        }
+      );
+
+      if (!portInput) {
+        return;
+      }
+    }
+
+    const tunnelDesc = this.tunnelInformation.environmentTunnels?.find(
+      (t) => t.localAddress.toString() === portInput
+    );
+    if (!tunnelDesc) {
+      vscode.window.showErrorMessage(
+        `No tunnel description found for ${portInput}`
+      );
+      return;
+    }
+
+    if (!(await isOpen(tunnelDesc))) {
+      vscode.window.showErrorMessage(`Nothing is listening on ${portInput}`);
+      return;
+    }
+
+    const tunnel = await this.provideTunnel(tunnelDesc);
+    await vscode.workspace.openTunnel(tunnel);
+    vscode.window.showInformationMessage(`Opened tunnel to ${portInput}`);
+  }
+
+  async tunnelScan(): Promise<void> {
+    log("Executing Tunnel Scan Command...");
+    const tunnels = this.tunnelInformation.environmentTunnels || [];
+    for (const tunnel of tunnels) {
+      if (await isOpen(tunnel)) {
+        log("Port is open", tunnel.localAddress);
+        await vscode.commands.executeCommand(
+          "ede-vscode.tunnel.open",
+          tunnel.localAddress.toString()
+        );
+      } else {
+        log("Port is closed", tunnel.localAddress);
+      }
+    }
+  }
+
   provideTunnel(
-    tunnel: vscode.TunnelOptions,
-    options: vscode.TunnelCreationOptions,
-    token: vscode.CancellationToken
+    tunnel: vscode.TunnelOptions | vscode.TunnelDescription,
+    // TODO: handle these
+    options?: vscode.TunnelCreationOptions,
+    token?: vscode.CancellationToken
   ): Thenable<vscode.Tunnel> {
     log("Providing Tunnel", JSON.stringify(tunnel));
-    return vscode.workspace.openTunnel(tunnel).then((tunnel) => {
-      this.context.subscriptions.push(
-        token.onCancellationRequested(async () => {
-          await tunnel.dispose();
-        })
-      );
-      return tunnel;
-    });
+
+    const spec: vscode.Tunnel = {
+      localAddress:
+        "localAddress" in tunnel
+          ? tunnel.localAddress
+          : LOCAL({
+              port: tunnel.localAddressPort || tunnel.remoteAddress.port,
+            }),
+      remoteAddress: tunnel.remoteAddress,
+      privacy: tunnel.privacy,
+      protocol: tunnel.protocol,
+      onDidDispose: new vscode.EventEmitter<void>().event,
+      dispose: async () => {},
+    };
+
+    log("Created Tunnel", JSON.stringify(spec));
+
+    return Promise.resolve(spec);
   }
 
   providePortAttributes(
@@ -80,31 +158,23 @@ class TunnelProvider
     );
 
     if (!tunnel) {
+      log("Tunnel not found for port", attributes.port);
       return new vscode.PortAttributes(vscode.PortAutoForwardAction.Ignore);
     }
 
-    return this.provideTunnel(
-      {
-        remoteAddress: tunnel.remoteAddress,
-        localAddressPort: attributes.port,
-        label:
-          attributes.commandLine || attributes.pid
-            ? `PID: ${attributes.pid}`
-            : undefined,
-        privacy: tunnel.privacy,
-        protocol: tunnel.protocol,
-      },
-      { elevationRequired: false },
-      token
-    ).then(() => {
-      return new vscode.PortAttributes(vscode.PortAutoForwardAction.Notify);
-    });
+    return vscode.commands
+      .executeCommand(
+        "ede-vscode.tunnel.open",
+        LOCAL({ port: attributes.port })
+      )
+      .then(() => {
+        return new vscode.PortAttributes(vscode.PortAutoForwardAction.Notify);
+      });
   }
 
   get portSelector(): vscode.PortAttributesSelector {
     const selector: vscode.PortAttributesSelector = {
       portRange: [0, 65536],
-      commandPattern: /.*/,
     };
 
     log("Generated Port Selectors", JSON.stringify(selector));
@@ -116,10 +186,14 @@ class TunnelProvider
 
     const information: vscode.TunnelInformation = {
       environmentTunnels: ports.map((port) => {
+        const remote = new URL(REMOTE({ port }));
         const description: vscode.TunnelDescription = {
           localAddress: LOCAL({ port }),
-          remoteAddress: { host: REMOTE({ port }), port: 443 },
-          privacy: "public",
+          remoteAddress: {
+            host: remote.hostname,
+            port: parseInt(remote.port) || 443,
+          },
+          privacy: "private",
           protocol: "http",
         };
         return description;

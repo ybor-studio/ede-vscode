@@ -33,8 +33,14 @@
   "contributes": {
     "commands": [
       {
-        "command": "ede-vscode.ports.scan",
-        "title": "EDE: Scan for Open Ports"
+        "command": "ede-vscode.tunnel.scan",
+        "title": "Scan for Open Ports to Tunnel",
+        "category": "EDE"
+      },
+      {
+        "command": "ede-vscode.tunnel.open",
+        "title": "Open Tunnel to Port",
+        "category": "EDE"
       }
     ]
   },
