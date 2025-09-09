@@ -2,7 +2,7 @@
   "name": "ede-vscode",
   "displayName": "Ybor Studio EDE VSCode Extension",
   "description": "The Ybor Studio EDE VSCode Extension",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "publisher": "ybor-studio",
   "repository": {
     "type": "git",
@@ -33,8 +33,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "ede-vscode.helloWorld",
-        "title": "Hello World"
+        "command": "ede-vscode.ports.scan",
+        "title": "EDE: Scan for Open Ports"
       }
     ]
   },
@@ -44,7 +44,8 @@
     "compile:tsc": "tsc -p ./",
     "compile": "npm run compile:dts && npm run compile:tsc",
     "watch": "tsc -watch -p ./",
-    "package": "vsce package --allow-star-activation"
+    "package": "vsce package --allow-star-activation",
+    "package:dev": "npm run package && code --install-extension ede-vscode-0.0.7.vsix --force"
   },
   "devDependencies": {
     "@types/node": "^20.x",

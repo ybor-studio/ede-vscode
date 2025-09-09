@@ -1,20 +1,12 @@
 import * as vscode from "vscode";
 import { log, NAME } from "./log";
-import { activatePorts } from "./ports";
+import { activateTunnels } from "./tunnels";
 
 export async function activate(context: vscode.ExtensionContext) {
   log(`Activating ${NAME} extension...`);
-  await activatePorts(context);
 
-  // DEVNOTE: Update package.json for command registrations
-  let disposable = vscode.commands.registerCommand(
-    "ede-vscode.helloWorld",
-    () => {
-      vscode.window.showInformationMessage("Hello World from EDE VSCode!");
-    }
-  );
+  await activateTunnels(context);
 
-  context.subscriptions.push(disposable);
   log(`Activated ${NAME} extension!`);
 }
 
