@@ -33,30 +33,29 @@ export async function activateTunnels(context: vscode.ExtensionContext) {
 }
 
 class TunnelProvider
-  implements vscode.TunnelProvider, vscode.PortAttributesProvider
+  implements vscode.PortAttributesProvider, vscode.RemoteAuthorityResolver
 {
   constructor(private context: vscode.ExtensionContext) {}
 
   async register() {
-    log("Registering Tunnel Provider...");
-    this.context.subscriptions.push(
-      await vscode.workspace
-        .registerTunnelProvider(this, this.tunnelInformation)
-        .then((disposable) =>
-          vscode.commands
-            .executeCommand("setContext", "forwardedPortsViewEnabled", true)
-            .then(() => {
-              log("Registering Ports Attributes Provider...");
-              this.context.subscriptions.push(
-                vscode.workspace.registerPortAttributesProvider(
-                  this.portSelector,
-                  this
-                )
-              );
+    log("Registering Remote Authority Resolver...");
+    try {
+      const disposable = vscode.workspace.registerRemoteAuthorityResolver("ede", this);
+      this.context.subscriptions.push(disposable);
+      log("Remote Authority Resolver registered successfully");
+    } catch (error) {
+      log("Failed to register Remote Authority Resolver:", error);
+    }
 
-              return disposable;
-            })
-        )
+    await vscode.commands.executeCommand(
+      "setContext",
+      "forwardedPortsViewEnabled",
+      true
+    );
+
+    log("Registering Ports Attributes Provider...");
+    this.context.subscriptions.push(
+      vscode.workspace.registerPortAttributesProvider(this.portSelector, this)
     );
   }
 
@@ -100,9 +99,18 @@ class TunnelProvider
       return;
     }
 
-    const tunnel = await this.provideTunnel(tunnelDesc);
-    await vscode.workspace.openTunnel(tunnel);
-    vscode.window.showInformationMessage(`Opened tunnel to ${portInput}`);
+    try {
+      log("Opening tunnel with description:", JSON.stringify(tunnelDesc));
+      
+      // Create tunnel directly using our tunnelFactory
+      const tunnel = await this.tunnelFactory(tunnelDesc);
+      log("Created tunnel:", JSON.stringify(tunnel));
+      
+      vscode.window.showInformationMessage(`Opened tunnel to ${portInput} -> ${tunnel.remoteAddress.host}:${tunnel.remoteAddress.port}`);
+    } catch (error) {
+      log("Error opening tunnel:", error);
+      vscode.window.showErrorMessage(`Failed to open tunnel: ${error}`);
+    }
   }
 
   async tunnelScan(): Promise<void> {
@@ -121,13 +129,26 @@ class TunnelProvider
     }
   }
 
-  provideTunnel(
+  resolve(
+    authority: string,
+    context: vscode.RemoteAuthorityResolverContext
+  ): vscode.ResolverResult | Thenable<vscode.ResolverResult> {
+    log("🔍 RESOLVE METHOD CALLED - authority:", authority, "context:", context);
+    return {
+      ...new vscode.ResolvedAuthority("localhost", 443),
+      ...this.tunnelInformation,
+    };
+  }
+
+  tunnelFactory(
     tunnel: vscode.TunnelOptions | vscode.TunnelDescription,
-    // TODO: handle these
     options?: vscode.TunnelCreationOptions,
     token?: vscode.CancellationToken
   ): Thenable<vscode.Tunnel> {
-    log("Providing Tunnel", JSON.stringify(tunnel));
+    log("🚇 TUNNEL FACTORY CALLED", JSON.stringify(tunnel));
+
+    // Convert "ede" authority to actual proxy URL
+    const remote = new URL(REMOTE({ port: tunnel.remoteAddress.port }));
 
     const spec: vscode.Tunnel = {
       localAddress:
@@ -136,7 +157,10 @@ class TunnelProvider
           : LOCAL({
               port: tunnel.localAddressPort || tunnel.remoteAddress.port,
             }),
-      remoteAddress: tunnel.remoteAddress,
+      remoteAddress: {
+        host: remote.hostname,
+        port: parseInt(remote.port) || 443,
+      },
       privacy: tunnel.privacy,
       protocol: tunnel.protocol,
       onDidDispose: new vscode.EventEmitter<void>().event,
@@ -162,14 +186,8 @@ class TunnelProvider
       return new vscode.PortAttributes(vscode.PortAutoForwardAction.Ignore);
     }
 
-    return vscode.commands
-      .executeCommand(
-        "ede-vscode.tunnel.open",
-        LOCAL({ port: attributes.port })
-      )
-      .then(() => {
-        return new vscode.PortAttributes(vscode.PortAutoForwardAction.Notify);
-      });
+    log("Found tunnel for port", attributes.port);
+    return new vscode.PortAttributes(vscode.PortAutoForwardAction.Notify);
   }
 
   get portSelector(): vscode.PortAttributesSelector {
@@ -186,12 +204,11 @@ class TunnelProvider
 
     const information: vscode.TunnelInformation = {
       environmentTunnels: ports.map((port) => {
-        const remote = new URL(REMOTE({ port }));
         const description: vscode.TunnelDescription = {
           localAddress: LOCAL({ port }),
           remoteAddress: {
-            host: remote.hostname,
-            port: parseInt(remote.port) || 443,
+            host: "ede",
+            port: parseInt(port),
           },
           privacy: "private",
           protocol: "http",
