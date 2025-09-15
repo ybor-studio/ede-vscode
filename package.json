@@ -28,7 +28,8 @@
     "tunnelFactory",
     "tunnels",
     "workspaceTrust",
-    "contribViewsRemote"
+    "contribViewsRemote",
+    "extensionRuntime"
   ],
   "main": "./out/extension.js",
   "contributes": {
