@@ -2,7 +2,7 @@
   "name": "ede-vscode",
   "displayName": "Ybor Studio EDE VSCode Extension",
   "description": "The Ybor Studio EDE VSCode Extension",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "publisher": "ybor-studio",
   "repository": {
     "type": "git",
@@ -19,25 +19,49 @@
   "activationEvents": [
     "*"
   ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "enabledApiProposals": [
+    "resolvers",
+    "portsAttributes",
+    "tunnelFactory",
+    "tunnels",
+    "workspaceTrust",
+    "contribViewsRemote"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "ede-vscode.helloWorld",
-        "title": "Hello World"
+        "command": "ede-vscode.tunnel.scan",
+        "title": "Scan for Open Ports to Tunnel",
+        "category": "EDE"
+      },
+      {
+        "command": "ede-vscode.tunnel.open",
+        "title": "Open Tunnel to Port",
+        "category": "EDE"
       }
     ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "compile:dts": "dts dev",
+    "compile:tsc": "tsc -p ./",
+    "compile": "npm run compile:dts && npm run compile:tsc",
     "watch": "tsc -watch -p ./",
-    "package": "vsce package --allow-star-activation"
+    "package": "vsce package --allow-star-activation",
+    "package:dev": "npm run package && code --install-extension ede-vscode-0.0.7.vsix --force"
   },
   "devDependencies": {
-    "@types/vscode": "^1.102.0",
     "@types/node": "^20.x",
-    "typescript": "^4.9.4",
-    "@vscode/vsce": "^3.6.0"
+    "@types/vscode": "^1.102.0",
+    "@vscode/dts": "^0.4.1",
+    "@vscode/vsce": "^3.6.0",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "handlebars": "^4.7.8"
   }
 }
