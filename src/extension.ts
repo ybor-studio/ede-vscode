@@ -1,53 +1,46 @@
 import * as vscode from "vscode";
 import { log, NAME } from "./log";
-import { activateTunnels } from "./tunnels";
-import { writeFileSync, writeSync } from "fs";
 
 export async function activate(context: vscode.ExtensionContext) {
   log(`Activating ${NAME} extension...`);
 
-  const tunneler = new Tunneler();
+  const tunneler = new Tunneler(context);
 
-  log("registering authority");
+  log("Registering Remote Authority Resolver...");
   context.subscriptions.push(
     vscode.workspace.registerRemoteAuthorityResolver("ede", tunneler)
   );
-  log("done registering authority");
 
-  log("registering remote authority");
-  context.subscriptions.push(
-    vscode.workspace.registerRemoteAuthorityResolver(
-      vscode.env.remoteAuthority!,
-      tunneler
-    )
-  );
-  log("done registering remote authority");
-
-  log("register tunnel provider");
+  log("Registering Tunnel Provider...");
   context.subscriptions.push(
     await vscode.workspace.registerTunnelProvider(
       tunneler,
       tunneler.tunnelInformation
     )
   );
-  log("done registering tunnel provier");
 
-  log("register attributes provider");
+  log("Registering Port Attributes Provider...");
   context.subscriptions.push(
     vscode.workspace.registerPortAttributesProvider(tunneler, tunneler)
   );
-  log("done registering attributes provider");
 
-  log("getting exec server");
-  const server = await vscode.workspace.getRemoteExecServer("ede+tunnels");
-  log("exec server", server);
+  log("Registering Tunnel Scan Command...");
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "ede-vscode.tunnel.scan",
+      tunneler.scan,
+      tunneler
+    )
+  );
 
-  log("open tunnel");
-  const tunnel = await vscode.workspace.openTunnel({
-    localAddressPort: 3000,
-    remoteAddress: { host: vscode.env.remoteAuthority!, port: 3000 },
-  });
-  log("tunnel opened", tunnel);
+  log("Registering Tunnel Open Command...");
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "ede-vscode.tunnel.open",
+      tunneler.open,
+      tunneler
+    )
+  );
 
   log(`Activated ${NAME} extension!`);
 }
@@ -75,13 +68,21 @@ class Tunneler
   portRange?: number | [number, number];
   commandPattern?: RegExp;
 
-  constructor() {
+  constructor(private context: vscode.ExtensionContext) {
     this.fs = new FileSystem();
-    this.portRange = 3000;
+    this.portRange = [0, 65536];
   }
 
   get tunnelInformation(): vscode.TunnelInformation {
     return {};
+  }
+
+  async scan(...args: []): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
+
+  async open(...args: []): Promise<void> {
+    throw new Error("Method not implemented.");
   }
 
   resolve(
@@ -102,7 +103,7 @@ class Tunneler
     remoteAuthority: string,
     context: vscode.RemoteAuthorityResolverContext
   ): vscode.ExecServer | Thenable<vscode.ExecServer> {
-    return this;
+    throw new Error("Method not implemented.");
   }
 
   getCanonicalURI?(uri: vscode.Uri): vscode.ProviderResult<vscode.Uri> {
@@ -113,7 +114,7 @@ class Tunneler
     tunnelOptions: vscode.TunnelOptions,
     tunnelCreationOptions: vscode.TunnelCreationOptions
   ): Thenable<vscode.Tunnel> {
-    throw new Error("Not implemented");
+    throw new Error("Method not implemented.");
   }
 
   showCandidatePort(
@@ -121,7 +122,7 @@ class Tunneler
     port: number,
     detail: string
   ): Thenable<boolean> {
-    return Promise.resolve(true);
+    throw new Error("Method not implemented.");
   }
 
   provideTunnel(
@@ -209,6 +210,5 @@ class FileSystem implements vscode.RemoteFileSystem {
 }
 
 export function deactivate() {
-  // console.log("Deactivating EDE VSCode extension...");
-  // Clean up resources if necessary
+  log(`Dectivated ${NAME} extension.`);
 }
