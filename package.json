@@ -51,6 +51,11 @@
         "title": "Clear Logs",
         "category": "EDE",
         "enablement": "edeHasLog"
+      },
+      {
+        "command": "ede-vscode.test.createTunnel",
+        "title": "Test Create Tunnel",
+        "category": "EDE"
       }
     ]
   },

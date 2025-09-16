@@ -1,7 +1,9 @@
 import * as vscode from "vscode";
 import { Logger } from "./log";
 
-export class TunnelProvider implements vscode.TunnelProvider {
+export class TunnelProvider
+  implements vscode.TunnelProvider, vscode.RemoteAuthorityResolver
+{
   static TunnelInformation: vscode.TunnelInformation = {
     tunnelFeatures: {
       elevation: false,
@@ -45,7 +47,7 @@ export class TunnelProvider implements vscode.TunnelProvider {
 
     const tunnel: vscode.Tunnel = {
       remoteAddress,
-      localAddress: `http://localhost:${port}`,
+      localAddress: `https://${port}-whatever.p6m.run`,
       public: true,
       onDidDispose: disposableEvent.event,
       dispose: () => {
@@ -58,4 +60,47 @@ export class TunnelProvider implements vscode.TunnelProvider {
     this.logger.log("info", `Tunnel created`, tunnel);
     return tunnel;
   }
+
+  async resolve(authority: string): Promise<vscode.ResolverResult> {
+    this.logger.log("info", "Resolving remote authority", { authority });
+
+    const serverName = authority.replace(/^ede:\/\//, "");
+    const host = "localhost";
+    const port = 22;
+
+    this.logger.log("info", "Resolved authority", {
+      authority,
+      serverName,
+      host,
+      port,
+    });
+
+    return {
+      host,
+      port,
+      connectionToken: undefined,
+    };
+  }
+
+  getCanonicalURI(uri: vscode.Uri): vscode.Uri {
+    this.logger.log("info", "Getting canonical URI", { uri: uri.toString() });
+    return uri;
+  }
+
+  tunnelFactory = async (
+    tunnelOptions: vscode.TunnelOptions,
+    tunnelCreationOptions: vscode.TunnelCreationOptions
+  ): Promise<vscode.Tunnel> => {
+    this.logger.log("info", "Creating tunnel via resolver factory");
+    const token = new vscode.CancellationTokenSource().token;
+    const tunnel = await this.provideTunnel(
+      tunnelOptions,
+      tunnelCreationOptions,
+      token
+    );
+    if (!tunnel) {
+      throw new Error("Failed to create tunnel");
+    }
+    return tunnel;
+  };
 }
