@@ -2,7 +2,7 @@
   "name": "ede-vscode",
   "displayName": "Ybor Studio EDE VSCode Extension",
   "description": "The Ybor Studio EDE VSCode Extension",
-  "version": "0.0.10",
+  "version": "0.0.12",
   "publisher": "ybor-studio",
   "repository": {
     "type": "git",
@@ -41,16 +41,16 @@
   "contributes": {
     "commands": [
       {
-        "command": "ede-vscode.tunnel.logs",
-        "title": "Show Tunnel Logs",
+        "command": "ede-vscode.logs.show",
+        "title": "Show Logs",
         "category": "EDE",
-        "enablement": "tunnelForwardingHasLog"
+        "enablement": "edeHasLog"
       },
       {
-        "command": "ede-vscode.tunnel.restart",
-        "title": "Restart Tunnels",
+        "command": "ede-vscode.logs.clear",
+        "title": "Clear Logs",
         "category": "EDE",
-        "enablement": "tunnelForwardingIsRunning"
+        "enablement": "edeHasLog"
       }
     ]
   },
@@ -61,7 +61,7 @@
     "compile": "npm run compile:dts && npm run compile:tsc",
     "watch": "tsc -watch -p ./",
     "package": "vsce package --allow-star-activation",
-    "package:dev": "npm run package && code --install-extension ede-vscode-0.0.9.vsix --force"
+    "package:dev": "npm run package && code --install-extension ede-vscode-0.0.12.vsix --force"
   },
   "devDependencies": {
     "@types/node": "^20.x",

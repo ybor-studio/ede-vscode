@@ -1,9 +1,31 @@
-import { format } from "util";
 import * as vscode from "vscode";
 
 export const NAME = "Ybor Studio EDE";
-const output = vscode.window.createOutputChannel(NAME);
 
-export const log = (message: string, ...additionalParams: unknown[]) => {
-  output.appendLine(format(message, additionalParams));
-};
+export class Logger {
+  private outputChannel?: vscode.LogOutputChannel;
+
+  constructor() {}
+
+  public show(): void {
+    return this.outputChannel?.show();
+  }
+
+  public clear() {
+    this.outputChannel?.clear();
+  }
+
+  public log(
+    logLevel: "trace" | "debug" | "info" | "warn" | "error",
+    message: string,
+    ...args: unknown[]
+  ) {
+    if (!this.outputChannel) {
+      this.outputChannel = vscode.window.createOutputChannel(NAME, {
+        log: true,
+      });
+      vscode.commands.executeCommand("setContext", "edeHasLog", true);
+    }
+    this.outputChannel[logLevel](message, ...args);
+  }
+}
