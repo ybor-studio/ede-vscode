@@ -2,7 +2,7 @@
   "name": "ede-vscode",
   "displayName": "Ybor Studio EDE VSCode Extension",
   "description": "The Ybor Studio EDE VSCode Extension",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "publisher": "ybor-studio",
   "repository": {
     "type": "git",
