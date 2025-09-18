@@ -27,7 +27,7 @@ export async function activate(context: vscode.ExtensionContext) {
           const tunnel = await vscode.workspace.openTunnel({
             localAddressPort: 3000,
             remoteAddress: {
-              host: "localhost",
+              host: "ede+localhost",
               port: 3000,
             },
           });
@@ -47,19 +47,22 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const tunnelProvider = new TunnelProvider(context, logger);
 
-  logger.log("info", "Activating Ports View...");
-  await vscode.commands
-    .executeCommand("setContext", "forwardedPortsViewEnabled", true)
-    .then(() =>
-      vscode.workspace.registerTunnelProvider(
-        tunnelProvider,
-        TunnelProvider.TunnelInformation
+  logger.log("info", "Registering Remote Authority Resolver...");
+  context.subscriptions.push(
+    vscode.workspace.registerRemoteAuthorityResolver("ede", tunnelProvider)
+  );
+
+  logger.log("info", "Registering Tunnel Provider...");
+  context.subscriptions.push(
+    await vscode.commands
+      .executeCommand("setContext", "forwardedPortsViewEnabled", true)
+      .then(() =>
+        vscode.workspace.registerTunnelProvider(
+          tunnelProvider,
+          TunnelProvider.TunnelInformation
+        )
       )
-    )
-    .then((disposable) => {
-      logger.log("info", "Tunnel Provider Registered!");
-      context.subscriptions.push(disposable);
-    });
+  );
 
   logger.log("info", "Extension Activated");
 }

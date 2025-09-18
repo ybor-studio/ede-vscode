@@ -77,13 +77,11 @@ export class TunnelProvider
   async resolve(authority: string): Promise<vscode.ResolverResult> {
     this.logger.log("info", "Resolving remote authority", { authority });
 
-    const serverName = authority.replace(/^ede:\/\//, "");
     const host = "localhost";
     const port = 22;
 
     this.logger.log("info", "Resolved authority", {
       authority,
-      serverName,
       host,
       port,
     });

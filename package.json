@@ -35,10 +35,24 @@
     "*"
   ],
   "extensionKind": [
-    "workspace"
+    "workspace",
+    "ui"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "resourceLabelFormatters": [
+      {
+        "scheme": "vscode-remote",
+        "authority": "ede+*",
+        "formatting": {
+          "label": "${path}",
+          "separator": "/",
+          "tildify": true,
+          "workspaceSuffix": "EdeResolver",
+          "workspaceTooltip": "EDE running on the same machine"
+        }
+      }
+    ],
     "commands": [
       {
         "command": "ede-vscode.logs.show",
