@@ -66,7 +66,7 @@
     "compile": "npm run compile:dts && npm run compile:tsc",
     "watch": "tsc -watch -p ./",
     "package": "vsce package --allow-star-activation",
-    "package:dev": "npm run package && code --install-extension ede-vscode-0.0.13.vsix --force"
+    "package:dev": "npm run package && code-server --extensions-dir /code-server/extensions --install-extension ede-vscode-0.0.15.vsix --force"
   },
   "devDependencies": {
     "@types/node": "^20.x",

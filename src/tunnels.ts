@@ -5,6 +5,14 @@ export class TunnelProvider
   implements vscode.TunnelProvider, vscode.RemoteAuthorityResolver
 {
   static TunnelInformation: vscode.TunnelInformation = {
+    environmentTunnels: [
+      {
+        localAddress: { host: "localhost", port: 3000 },
+        remoteAddress: { host: "localhost", port: 3000 },
+        privacy: "private",
+        protocol: "http",
+      },
+    ],
     tunnelFeatures: {
       elevation: false,
       privacyOptions: [
@@ -21,6 +29,9 @@ export class TunnelProvider
       ],
     },
   };
+
+  candidatePortSource = vscode.CandidatePortSource.Hybrid;
+  showCandidatePort = () => Promise.resolve(true);
 
   constructor(
     private context: vscode.ExtensionContext,
@@ -46,9 +57,11 @@ export class TunnelProvider
     const disposableEvent = new vscode.EventEmitter<void>();
 
     const tunnel: vscode.Tunnel = {
-      remoteAddress,
-      localAddress: `https://${port}-whatever.p6m.run`,
-      public: true,
+      // remoteAddress,
+      // localAddress: `https://${port}-whatever.p6m.run`,
+      remoteAddress: { host: "localhost", port: 3000 },
+      localAddress: { host: "localhost", port: 3000 },
+      privacy: "private",
       onDidDispose: disposableEvent.event,
       dispose: () => {
         this.logger.log("info", `Disposing tunnel`, tunnel);

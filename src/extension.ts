@@ -23,10 +23,13 @@ export async function activate(context: vscode.ExtensionContext) {
       "ede-vscode.test.createTunnel",
       async () => {
         try {
-          // Use VS Code's built-in port forwarding API
+          logger.log("info", "Opening tunnel to VSC URL...");
           const tunnel = await vscode.workspace.openTunnel({
-            remoteAddress: { host: "localhost", port: 3000 },
-            label: "Test Port 3000",
+            localAddressPort: 3000,
+            remoteAddress: {
+              host: "localhost",
+              port: 3000,
+            },
           });
           logger.log("info", "Port forwarded via VS Code API", tunnel);
 
@@ -44,13 +47,19 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const tunnelProvider = new TunnelProvider(context, logger);
 
-  logger.log("info", "Registering Tunnel Provider...");
-  context.subscriptions.push(
-    await vscode.workspace.registerTunnelProvider(
-      tunnelProvider,
-      TunnelProvider.TunnelInformation
+  logger.log("info", "Activating Ports View...");
+  await vscode.commands
+    .executeCommand("setContext", "forwardedPortsViewEnabled", true)
+    .then(() =>
+      vscode.workspace.registerTunnelProvider(
+        tunnelProvider,
+        TunnelProvider.TunnelInformation
+      )
     )
-  );
+    .then((disposable) => {
+      logger.log("info", "Tunnel Provider Registered!");
+      context.subscriptions.push(disposable);
+    });
 
   logger.log("info", "Extension Activated");
 }
