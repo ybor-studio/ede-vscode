@@ -26,6 +26,11 @@ export class Logger {
       });
       vscode.commands.executeCommand("setContext", "edeHasLog", true);
     }
+
     this.outputChannel[logLevel](message, ...args);
+
+    if (logLevel === "error") {
+      vscode.window.showErrorMessage(message).then(() => {});
+    }
   }
 }

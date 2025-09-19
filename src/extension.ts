@@ -1,70 +1,26 @@
 import * as vscode from "vscode";
 import { Logger } from "./log";
-import { TunnelProvider } from "./tunnels";
+import { EdeProvider } from "./provider";
+import { error } from "console";
 
 export async function activate(context: vscode.ExtensionContext) {
   const logger = new Logger();
   logger.log("info", "Activating Extension");
 
-  logger.log("info", "Registering ede-vscode.logs.show command...");
-  context.subscriptions.push(
-    vscode.commands.registerCommand("ede-vscode.logs.show", () => logger.show())
-  );
-  logger.log("info", "Registering ede-vscode.logs.clear command...");
-  context.subscriptions.push(
-    vscode.commands.registerCommand("ede-vscode.logs.clear", () =>
-      logger.clear()
-    )
-  );
+  try {
+    const provider = new EdeProvider(context, logger);
 
-  logger.log("info", "Registering ede-vscode.test.createTunnel command...");
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      "ede-vscode.test.createTunnel",
-      async () => {
-        try {
-          logger.log("info", "Opening tunnel to VSC URL...");
-          const tunnel = await vscode.workspace.openTunnel({
-            localAddressPort: 3000,
-            remoteAddress: {
-              host: "ede+localhost",
-              port: 3000,
-            },
-          });
-          logger.log("info", "Port forwarded via VS Code API", tunnel);
+    logger.log("info", "Registering Ports Attributes Provider...");
+    context.subscriptions.push(
+      vscode.workspace.registerPortAttributesProvider(provider, provider)
+    );
 
-          // Also show a notification
-          vscode.window.showInformationMessage(
-            `Port 3000 forwarded to ${tunnel?.localAddress}`
-          );
-        } catch (error) {
-          logger.log("error", "Failed to forward port", error);
-          vscode.window.showErrorMessage(`Failed to forward port: ${error}`);
-        }
-      }
-    )
-  );
+    // TODO: add support for Tunnel Provider
 
-  const tunnelProvider = new TunnelProvider(context, logger);
-
-  logger.log("info", "Registering Remote Authority Resolver...");
-  context.subscriptions.push(
-    vscode.workspace.registerRemoteAuthorityResolver("ede", tunnelProvider)
-  );
-
-  logger.log("info", "Registering Tunnel Provider...");
-  context.subscriptions.push(
-    await vscode.commands
-      .executeCommand("setContext", "forwardedPortsViewEnabled", true)
-      .then(() =>
-        vscode.workspace.registerTunnelProvider(
-          tunnelProvider,
-          TunnelProvider.TunnelInformation
-        )
-      )
-  );
-
-  logger.log("info", "Extension Activated");
+    logger.log("info", "Extension Activated");
+  } catch (error) {
+    logger.log("error", "Unable to activate extension", error);
+  }
 }
 
 export function deactivate() {}
