@@ -3,8 +3,13 @@ import { Logger } from "./log";
 import Handlebars from "handlebars";
 
 export class EdeProvider
-  implements vscode.PortAttributesProvider, vscode.PortAttributesSelector
+  implements
+    vscode.PortAttributesProvider,
+    vscode.PortAttributesSelector,
+    vscode.TunnelProvider
 {
+  static TunnelInformation: vscode.TunnelInformation = {};
+
   proxyUri: string;
   proxyPorts: number[];
   proxyTemplate: HandlebarsTemplateDelegate<{
@@ -48,17 +53,30 @@ export class EdeProvider
     const protocol = "HTTP"; // TODO inspect protocol
     const name = `Port ${port}`; // TODO process name
     const proxyUri = this.proxyTemplate({ port });
-    const buttons = ["Open Browser", "Dismiss"];
+    const buttons: vscode.MessageItem[] = [{ title: "Open Browser" }];
 
     const choice = await vscode.window.showInformationMessage(
-      `${protocol} ${name} is accesible at ${proxyUri}`,
+      `${protocol} ${name} is now [publicly accesible](${proxyUri}).`,
+      {},
       ...buttons
     );
 
-    if (choice === "Open Browser") {
+    if (choice?.title === "Open Browser") {
       await vscode.env.openExternal(vscode.Uri.parse(proxyUri));
     }
 
-    return new vscode.PortAttributes(vscode.PortAutoForwardAction.Silent);
+    return new vscode.PortAttributes(vscode.PortAutoForwardAction.Notify);
+  }
+
+  provideTunnel(
+    tunnelOptions: vscode.TunnelOptions,
+    tunnelCreationOptions: vscode.TunnelCreationOptions,
+    token: vscode.CancellationToken
+  ): vscode.ProviderResult<vscode.Tunnel> {
+    this.logger.log("info", "Providing Tunnel", {
+      tunnelOptions,
+      tunnelCreationOptions,
+    });
+    throw new Error("Method not implemented.");
   }
 }
