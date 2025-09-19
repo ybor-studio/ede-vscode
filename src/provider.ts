@@ -29,10 +29,10 @@ export class EdeProvider
     });
   }
 
-  providePortAttributes(
+  async providePortAttributes(
     attributes: { port: number; pid?: number; commandLine?: string },
     token: vscode.CancellationToken
-  ): vscode.ProviderResult<vscode.PortAttributes> {
+  ): Promise<vscode.PortAttributes> {
     const { port } = attributes;
     this.logger.log("info", "Providing Port Attributes", { port });
 
@@ -41,7 +41,8 @@ export class EdeProvider
         port,
         proxyPorts: this.proxyPorts,
       });
-      return;
+
+      return new vscode.PortAttributes(vscode.PortAutoForwardAction.Silent);
     }
 
     const protocol = "HTTP"; // TODO inspect protocol
@@ -49,18 +50,15 @@ export class EdeProvider
     const proxyUri = this.proxyTemplate({ port });
     const buttons = ["Open Browser", "Dismiss"];
 
-    return vscode.window
-      .showInformationMessage(
-        `${protocol} ${name} is accesible at ${proxyUri}`,
-        ...buttons
-      )
-      .then((choice) => {
-        if (choice === "Open Browser") {
-          return vscode.env.openExternal(vscode.Uri.parse(proxyUri));
-        }
-      })
-      .then(
-        () => new vscode.PortAttributes(vscode.PortAutoForwardAction.Silent)
-      );
+    const choice = await vscode.window.showInformationMessage(
+      `${protocol} ${name} is accesible at ${proxyUri}`,
+      ...buttons
+    );
+
+    if (choice === "Open Browser") {
+      await vscode.env.openExternal(vscode.Uri.parse(proxyUri));
+    }
+
+    return new vscode.PortAttributes(vscode.PortAutoForwardAction.Silent);
   }
 }

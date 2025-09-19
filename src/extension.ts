@@ -12,7 +12,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     logger.log("info", "Registering Ports Attributes Provider...");
     context.subscriptions.push(
-      vscode.workspace.registerPortAttributesProvider(provider, provider)
+      vscode.workspace.registerPortAttributesProvider({}, provider)
     );
 
     // TODO: add support for Tunnel Provider
