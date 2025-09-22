@@ -10,8 +10,8 @@
         "--extensionDevelopmentPath=${workspaceFolder}",
         "--enable-proposed-api",
         "ybor-studio.ede-vscode",
-        // "--disable-extension",
-        // "vscode.tunnel-forwarding",
+        "--disable-extension",
+        "vscode.tunnel-forwarding",
         // "--remote=ede+test"
       ],
       "preLaunchTask": "npm: compile"

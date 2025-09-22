@@ -16,8 +16,8 @@ export class Logger {
   }
 
   public log(
-    logLevel: "trace" | "debug" | "info" | "warn" | "error",
-    message: string,
+    logLevel: "trace" | "debug" | "info" | "warn" | "error" | Error,
+    message?: string,
     ...args: unknown[]
   ) {
     if (!this.outputChannel) {
@@ -27,10 +27,18 @@ export class Logger {
       vscode.commands.executeCommand("setContext", "edeHasLog", true);
     }
 
-    this.outputChannel[logLevel](message, ...args);
+    if (logLevel instanceof Error) {
+      const source = logLevel.stack?.split("\n")[2].trim();
+      if (source) {
+        message = `${logLevel.message || message} (via ${source})`;
+      }
+      logLevel = "warn";
+    }
+
+    this.outputChannel[logLevel](message || "", ...args);
 
     if (logLevel === "error") {
-      vscode.window.showErrorMessage(message).then(() => {});
+      vscode.window.showErrorMessage(message || "").then(() => {});
     }
   }
 }
