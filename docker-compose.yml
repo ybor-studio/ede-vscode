@@ -1,48 +1,16 @@
 services:
-  build:
-    image: node:22
-    working_dir: /root/ede-vscode
-    volumes:
-      - ./:/root/ede-vscode
-      - extensions:/root/.vscode/extensions
-    command: ["npm", "run", "package", "--", "--out", "extension.vsix"]
-    restart: no
-  install:
-    depends_on:
-      build:
-        condition: service_completed_successfully
-    build:
-      context: .
-      dockerfile: Dockerfile
-    working_dir: /root/ede-vscode
-    volumes:
-      - ./:/root/ede-vscode
-      - extensions:/code-server/extensions
-    command: [
-      "code-server",
-      "--server-data-dir", "/code-server",
-      "--builtin-extensions-dir", "/code-server/extensions",
-      "--install-builtin-extension", "extension.vsix",
-      "--force",
-    ]
-    restart: no
   vscode:
-    depends_on:
-      install:
-        condition: service_completed_successfully
     tty: true
     build:
       context: .
       dockerfile: Dockerfile
     volumes:
       - ./:/root/ede-vscode
-      - extensions:/code-server/extensions
     ports:
       - "2999:2999"
     command: [
       "code-server",
       "--server-data-dir", "/code-server",
-      "--builtin-extensions-dir", "/code-server/extensions",
       "--accept-server-license-terms",
       "--host", "0.0.0.0",
       "--port", "2999",
