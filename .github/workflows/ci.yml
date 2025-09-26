@@ -28,3 +28,7 @@ jobs:
 
       - name: Package extension
         run: npm run package
+
+      - name: Output NPM Logs
+        if: failure()
+        run: cat ~/.npm/_logs/*.log
