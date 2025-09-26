@@ -5,7 +5,7 @@ export const NAME = "Ybor Studio EDE";
 export class Logger {
   private outputChannel?: vscode.LogOutputChannel;
 
-  constructor() {}
+  constructor(private name?: string) {}
 
   public show(): void {
     return this.outputChannel?.show();
@@ -33,6 +33,10 @@ export class Logger {
         message = `${logLevel.message || message} (via ${source})`;
       }
       logLevel = "warn";
+    }
+
+    if (this.name) {
+      message = `[${this.name}] ${message || ""}`;
     }
 
     this.outputChannel[logLevel](message || "", ...args);

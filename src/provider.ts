@@ -1,14 +1,13 @@
 import * as vscode from "vscode";
 import { Logger } from "./log";
 import Handlebars from "handlebars";
+import { netstat, PortAttributes } from "./netstat";
+import { Subscription } from "rxjs";
 
-export class EdeProvider
-  implements
-    vscode.PortAttributesProvider,
-    vscode.TunnelProvider,
-    vscode.TunnelInformation,
-    vscode.RemoteAuthorityResolver
-{
+export class EdeProvider implements vscode.PortAttributesProvider {
+  private ports: vscode.EventEmitter<PortAttributes> =
+    new vscode.EventEmitter<PortAttributes>();
+
   proxyUri: string;
   proxyPorts: number[];
   proxyTemplate: HandlebarsTemplateDelegate<{
@@ -23,7 +22,18 @@ export class EdeProvider
     this.proxyTemplate = Handlebars.compile<{ port: number }>(this.proxyUri);
     this.proxyPorts = process.env.EDE_PROXY_PORTS?.split(",").map((p) =>
       parseInt(p)
-    ) || [3000];
+    ) || [3000, 8080];
+
+    context.subscriptions.push(
+      this.ports.event((attributes) => {
+        this.logger.log("info", "EDE Provider Port Event", { attributes });
+        return this.providePortAttributes(
+          attributes,
+          new vscode.CancellationTokenSource().token
+        );
+      })
+    );
+    context.subscriptions.push(this.ports);
 
     this.logger.log("info", "EDE Provider Constructed", {
       proxyUri: this.proxyUri,
@@ -31,85 +41,50 @@ export class EdeProvider
     });
   }
 
-  resolve(
-    authority: string,
-    context: vscode.RemoteAuthorityResolverContext
-  ): vscode.ResolverResult | Thenable<vscode.ResolverResult> {
-    this.logger.log(new Error("Resolving Authority"), undefined, {
-      authority,
-      context,
+  async activate(): Promise<void> {
+    this.logger.log("info", "Registering Commands...");
+    await this.registerCommands();
+
+    this.logger.log("info", "Starting Ports Scanner...");
+    await vscode.commands.executeCommand("ede-vscode.port-scan.start");
+
+    this.context.subscriptions.push({
+      dispose: async () => {
+        this.logger.log("info", "Provider Disposed");
+        await vscode.commands.executeCommand("ede-vscode.port-scan.stop");
+      },
     });
-    throw new Error("resolve not implemented.");
-  }
-  resolveExecServer?(
-    remoteAuthority: string,
-    context: vscode.RemoteAuthorityResolverContext
-  ): vscode.ExecServer | Thenable<vscode.ExecServer> {
-    this.logger.log(new Error("Resolving Exec Server"), undefined, {
-      remoteAuthority,
-      context,
-    });
-    throw new Error("resolveExecServer not implemented.");
+
+    this.logger.log("info", "Provider Activated");
   }
 
-  getCanonicalURI(uri: vscode.Uri): vscode.ProviderResult<vscode.Uri> {
-    this.logger.log(new Error("Getting Canonical URI"), undefined, { uri });
-    throw new Error("getCanonicalURI not implemented.");
-  }
+  async registerCommands(): Promise<void> {
+    let portScan: Subscription | undefined = undefined;
 
-  tunnelFactory(
-    tunnelOptions: vscode.TunnelOptions,
-    tunnelCreationOptions: vscode.TunnelCreationOptions
-  ): Thenable<vscode.Tunnel> {
-    this.logger.log(new Error("Tunneling Factory Called"), undefined, {
-      tunnelOptions,
-      tunnelCreationOptions,
-    });
-    throw new Error("tunnelFactory not implemented.");
-  }
+    const commands = [
+      vscode.commands.registerCommand(
+        "ede-vscode.port-scan.start",
+        async () => {
+          this.logger.log("info", "Scanning for open ports...");
 
-  showCandidatePort(
-    host: string,
-    port: number,
-    detail: string
-  ): Thenable<boolean> {
-    this.logger.log(new Error("Showing Candidate Port"), undefined, {
-      host,
-      port,
-      detail,
-    });
-    return Promise.resolve(true);
-  }
+          await vscode.commands.executeCommand("ede-vscode.port-scan.stop");
 
-  get candidatePortSource(): vscode.CandidatePortSource | undefined {
-    this.logger.log(new Error("Providing Candidate Port Source"));
-    return vscode.CandidatePortSource.Hybrid;
-  }
+          portScan = netstat(this.proxyPorts, 2000).subscribe((data) => {
+            this.logger.log("info", "Port Observed", { data });
+            this.ports.fire(data);
+          });
+        }
+      ),
+      vscode.commands.registerCommand("ede-vscode.port-scan.stop", async () => {
+        if (portScan) {
+          this.logger.log("info", "Stopping port scan...");
+          portScan.unsubscribe();
+          portScan = undefined;
+        }
+      }),
+    ];
 
-  get environmentTunnels(): vscode.TunnelDescription[] | undefined {
-    this.logger.log(new Error("Providing Environment Tunnels"));
-    // return this.proxyPorts.map((port) => {
-    //   const description: vscode.TunnelDescription = {
-    //     remoteAddress: { host: "localhost", port },
-    //     localAddress: this.proxyTemplate({ port }),
-    //     privacy: "private",
-    //     protocol: "http",
-    //   };
-    //   return description;
-    // });
-    return [];
-  }
-
-  get tunnelFeatures(): vscode.RemoteAuthorityResolver["tunnelFeatures"] {
-    this.logger.log(new Error("Providing Tunnel Features"));
-    return {
-      elevation: false,
-      privacyOptions: [
-        { id: "private", label: "Private", themeIcon: "lock" },
-        { id: "public", label: "Public", themeIcon: "globe" },
-      ],
-      public: true,
-    };
+    this.context.subscriptions.push(...commands);
   }
 
   async providePortAttributes(
@@ -117,7 +92,7 @@ export class EdeProvider
     token: vscode.CancellationToken
   ): Promise<vscode.PortAttributes> {
     const { port } = attributes;
-    this.logger.log(new Error("Providing Port Attributes"), undefined, {
+    this.logger.log("info", "Providing Port Attributes", {
       port,
     });
 
@@ -145,18 +120,6 @@ export class EdeProvider
       await vscode.env.openExternal(vscode.Uri.parse(proxyUri));
     }
 
-    return new vscode.PortAttributes(vscode.PortAutoForwardAction.Notify);
-  }
-
-  provideTunnel(
-    tunnelOptions: vscode.TunnelOptions,
-    tunnelCreationOptions: vscode.TunnelCreationOptions,
-    token: vscode.CancellationToken
-  ): vscode.ProviderResult<vscode.Tunnel> {
-    this.logger.log("info", "Providing Tunnel", {
-      tunnelOptions,
-      tunnelCreationOptions,
-    });
-    throw new Error("provideTunnel not implemented.");
+    return new vscode.PortAttributes(vscode.PortAutoForwardAction.Silent);
   }
 }

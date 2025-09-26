@@ -41,23 +41,21 @@
   "contributes": {
     "commands": [
       {
-        "command": "ede-vscode.logs.show",
-        "title": "Show Logs",
-        "category": "EDE",
-        "enablement": "edeHasLog"
+        "command": "ede-vscode.port-scan.start",
+        "title": "Start Port Scan",
+        "category": "EDE"
       },
       {
-        "command": "ede-vscode.logs.clear",
-        "title": "Clear Logs",
-        "category": "EDE",
-        "enablement": "edeHasLog"
-      },
-      {
-        "command": "ede-vscode.test.createTunnel",
-        "title": "Test Create Tunnel",
+        "command": "ede-vscode.port-scan.stop",
+        "title": "Stop Port Scan",
         "category": "EDE"
       }
-    ]
+    ],
+    "remoteHelp": {
+      "ede": [
+        "EDE Remote Environment"
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -70,12 +68,16 @@
   },
   "devDependencies": {
     "@types/node": "^20.x",
+    "@types/node-netstat": "^1.8.4",
     "@types/vscode": "^1.102.0",
     "@vscode/dts": "^0.4.1",
     "@vscode/vsce": "^3.6.0",
     "typescript": "^4.9.4"
   },
   "dependencies": {
-    "handlebars": "^4.7.8"
+    "handlebars": "^4.7.8",
+    "node-netstat": "^1.9.0",
+    "ps-list": "^9.0.0",
+    "rxjs": "^7.8.2"
   }
 }
