@@ -79,6 +79,12 @@ ENV CACHE_BUST=1
 COPY --from=vscode-extension /work/extension.vsix /tmp/extension.vsix
 RUN code-server --install-extension /tmp/extension.vsix --force
 
+# Additional pipx packages
+RUN pipx install \
+    uv
+
+COPY fs/usr /usr
+
 ENTRYPOINT [ "code-server" ]
 CMD ["--server-data-dir", "/code-server", "--accept-server-license-terms", "--host", "0.0.0.0", "--port", "2999", "--enable-proposed-api", "ybor-studio.ede-vscode", "--log", "trace"]
 EXPOSE 2999
