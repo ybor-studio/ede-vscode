@@ -1,6 +1,19 @@
 # pin to amd64, universal:linux does not have arm64
 # TODO: make our own
 FROM --platform=linux/amd64 mcr.microsoft.com/devcontainers/universal:linux AS universal
+# Increment this to break the docker cache for this stage
+ENV CACHE_BUST=1
+
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get install -y \
+    gnupg2 \
+    curl \
+    apt-transport-https \
+    lsb-release \
+    ca-certificates \
+    software-properties-common \
+    sudo
 
 RUN groupmod -n ede codespace \
     && usermod -l ede -d /ede -m -u 1000 -c "ede" -g ede -aG docker -aG staff codespace
@@ -15,26 +28,57 @@ WORKDIR /ede
 ENV HOME=/ede \
     USER=ede
 
-# FROM ybor/node:22-bullseye AS extension-builder
-# WORKDIR /workdir
-# COPY . .
-# RUN npm install && \    
-#     npm run package -- --out extension.vsix
+FROM universal AS vscode
+# Increment this to break the docker cache for this stage
+ENV CACHE_BUST=1
 
-# FROM ybor/vscode:latest
+RUN ARCH=$(uname -m) && \
+    case "$ARCH" in \
+    x86_64) ARCH_SUFFIX="x64" ;; \
+    aarch64) ARCH_SUFFIX="arm64" ;; \
+    *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    esac && \
+    sudo mkdir -p /code-server && \
+    URL="https://vscode.download.prss.microsoft.com/dbazure/download/stable/f220831ea2d946c0dcb0f3eaa480eb435a2c1260/vscode-server-linux-$ARCH_SUFFIX-web.tar.gz" && \
+    echo "Downloading: $URL" && \
+    curl -fsSL "$URL" | sudo tar -xz --strip-components=1 -C /code-server && \
+    sudo chown -R ede:staff /code-server
 
-# RUN apt-get update && \
-#     apt-get install -y build-essential git curl net-tools && \
-#     rm -rf /var/lib/apt/lists/*
+ENV PATH="/code-server/bin:$PATH" \
+    IDE="code-server"
 
-# COPY --from=extension-builder /workdir/extension.vsix /tmp/extension.vsix
-# RUN code-server \
-#     --server-data-dir /code-server \
-#     --builtin-extensions-dir /code-server/extensions \
-#     --install-builtin-extension /tmp/extension.vsix \
-#     --force && \
-#     rm /tmp/extension.vsix
+RUN code-server --version
 
-# ENTRYPOINT [ "code-server" ]
-# CMD ["--server-data-dir", "/code-server", "--accept-server-license-terms", "--host", "0.0.0.0", "--port", "2999", "--enable-proposed-api", "ybor-studio.ede-vscode", "--log", "trace"]
-# EXPOSE 2999
+FROM vscode AS extensions
+# Increment this to break the docker cache for this stage
+ENV CACHE_BUST=1
+
+RUN for extension in \
+    ms-python.black-formatter \
+    ms-python.vscode-pylance \
+    ms-python.python \
+    ms-python.debugpy \
+    ms-python.vscode-python-envs \
+    ; do \
+    code-server --extensions-dir=/code-server/extensions --install-extension "$extension" --force; \
+    done
+
+FROM ybor/node:22-bullseye AS vscode-extension
+# Increment this to break the docker cache for this stage
+ENV CACHE_BUST=1
+
+WORKDIR /work
+COPY . .
+RUN npm install && \
+    npm run package -- --out extension.vsix
+
+FROM extensions AS final
+# Increment this to break the docker cache for this stage
+ENV CACHE_BUST=1
+
+COPY --from=vscode-extension /work/extension.vsix /tmp/extension.vsix
+RUN code-server --install-extension /tmp/extension.vsix --force
+
+ENTRYPOINT [ "code-server" ]
+CMD ["--server-data-dir", "/code-server", "--accept-server-license-terms", "--host", "0.0.0.0", "--port", "2999", "--enable-proposed-api", "ybor-studio.ede-vscode", "--log", "trace"]
+EXPOSE 2999
