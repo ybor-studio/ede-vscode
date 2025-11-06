@@ -54,6 +54,8 @@ FROM vscode AS extensions
 ENV CACHE_BUST=1
 
 RUN for extension in \
+    esbenp.prettier-vscode \
+    dbaeumer.vscode-eslint \
     ms-python.black-formatter \
     ms-python.vscode-pylance \
     ms-python.python \
