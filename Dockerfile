@@ -77,7 +77,7 @@ FROM extensions AS final
 ENV CACHE_BUST=1
 
 COPY --from=vscode-extension /work/extension.vsix /tmp/extension.vsix
-RUN code-server --install-extension /tmp/extension.vsix --force
+RUN code-server --extensions-dir=/code-server/extensions --install-extension /tmp/extension.vsix --force
 
 # Additional pipx packages
 RUN pipx install \
