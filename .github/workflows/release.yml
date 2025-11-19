@@ -20,7 +20,7 @@ permissions: write-all
 
 jobs:
   build-and-release:
-    runs-on: ubuntu-latest-xl
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
