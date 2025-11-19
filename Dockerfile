@@ -77,7 +77,7 @@ RUN npm install -g pnpm@10
 WORKDIR /work
 COPY . .
 RUN pnpm install --frozen-lockfile && \
-    pnpm run package -- --out extension.vsix
+    pnpm run package --out extension.vsix
 
 FROM extensions AS final
 # Increment this to break the docker cache for this stage

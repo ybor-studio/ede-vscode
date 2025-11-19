@@ -79,7 +79,7 @@ jobs:
           fi
 
       - name: Package extension
-        run: pnpm run package -- --out ./ede-vscode-${{ steps.final-version.outputs.tag_name }}.vsix
+        run: pnpm run package --out ./ede-vscode-${{ steps.final-version.outputs.tag_name }}.vsix
 
       - name: Create Release
         uses: ncipollo/release-action@v1
