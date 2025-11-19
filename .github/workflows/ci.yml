@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   package:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-xl
 
     steps:
       - name: Checkout code
@@ -39,7 +39,7 @@ jobs:
         run: pnpm run package
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-xl
 
     steps:
       - name: Checkout code
