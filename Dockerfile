@@ -1,5 +1,6 @@
 # pin to amd64, universal:linux does not have arm64
 # TODO: make our own
+FROM --platform=linux/amd64 ghcr.io/ybor-studio/ai-studio-frontend:latest AS ai-studio
 FROM --platform=linux/amd64 mcr.microsoft.com/devcontainers/universal:linux AS universal
 # Increment this to break the docker cache for this stage
 ENV CACHE_BUST=1
@@ -47,6 +48,8 @@ RUN ARCH=$(uname -m) && \
 ENV PATH="/code-server/bin:$PATH" \
     IDE="code-server"
 
+COPY --from=ai-studio /usr/share/nginx/html /ai-studio
+
 RUN code-server --version
 
 FROM vscode AS extensions
@@ -69,10 +72,12 @@ FROM ybor/node:22-bullseye AS vscode-extension
 # Increment this to break the docker cache for this stage
 ENV CACHE_BUST=1
 
+RUN npm install -g pnpm@10
+
 WORKDIR /work
 COPY . .
-RUN npm install && \
-    npm run package -- --out extension.vsix
+RUN pnpm install --frozen-lockfile && \
+    pnpm run package -- --out extension.vsix
 
 FROM extensions AS final
 # Increment this to break the docker cache for this stage

@@ -19,9 +19,9 @@ The Ybor Studio EDE VSCode Extension provides enhanced development experience fo
 ### From Source
 
 1. Clone this repository
-2. Install dependencies: `npm install`
-3. Compile: `npm run compile`
-4. Package: `npm run package`
+2. Install dependencies: `pnpm install`
+3. Compile: `pnpm run compile`
+4. Package: `pnpm run package`
 5. Install the generated `.vsix` file
 
 ## Commands
@@ -40,14 +40,14 @@ The Ybor Studio EDE VSCode Extension provides enhanced development experience fo
 ```bash
 git clone https://github.com/ybor-studio/ede-vscode.git
 cd ede-vscode
-npm install
+pnpm install
 ```
 
 ### Available Scripts
 
-- `npm run compile` - Compile TypeScript
-- `npm run watch` - Watch and compile on changes
-- `npm run package` - Package extension into .vsix file
+- `pnpm run compile` - Compile TypeScript
+- `pnpm run watch` - Watch and compile on changes
+- `pnpm run package` - Package extension into .vsix file
 
 ### Testing
 
