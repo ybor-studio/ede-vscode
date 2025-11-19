@@ -71,12 +71,13 @@ RUN for extension in \
 FROM ybor/node:22-bullseye AS vscode-extension
 # Increment this to break the docker cache for this stage
 ENV CACHE_BUST=1
+ENV CI=true
 
 RUN npm install -g pnpm@10
 
 WORKDIR /work
 COPY . .
-RUN pnpm install --frozen-lockfile && \
+RUN pnpm install && \
     pnpm run package --out extension.vsix
 
 FROM extensions AS final
