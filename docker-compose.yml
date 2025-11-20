@@ -7,16 +7,37 @@ services:
     volumes:
       - ./:/root/ede-vscode
     ports:
-      - "2999:2999"
+      - "2001:2001"
+    command:
+      [
+        "code-server",
+        "--server-data-dir",
+        "/code-server",
+        "--accept-server-license-terms",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "2001",
+        "--without-connection-token",
+        "--enable-proposed-api",
+        "ybor-studio.ede-vscode",
+        "--log",
+        "trace",
+      ]
+  langflow:
+    image: langflowai/langflow:latest
+    ports:
+      - "2002:2002"
+    environment:
+      - LF_HOST=0.0.0.0
+      - LF_PORT=2002
+      - LF_ENABLE_AUTH=False
     command: [
-      "code-server",
-      "--server-data-dir", "/code-server",
-      "--accept-server-license-terms",
+      "langflow", 
+      "run",
       "--host", "0.0.0.0",
-      "--port", "2999",
-      "--without-connection-token",
-      "--enable-proposed-api", "ybor-studio.ede-vscode",
-      "--log", "trace",
+      "--port", "2002",
+      "--backend-only"
     ]
 
 volumes:

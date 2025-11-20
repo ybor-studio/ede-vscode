@@ -51,8 +51,8 @@
         "category": "EDE"
       },
       {
-        "command": "ede-vscode.openAIStudio",
-        "title": "Open AI Studio",
+        "command": "ede-vscode.open.langflow",
+        "title": "Open Langflow",
         "category": "EDE"
       }
     ],
@@ -63,14 +63,14 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "pnpm run compile && pnpm run package:langflow",
+    "vscode:prepublish": "pnpm run compile",
     "compile:dts": "dts dev",
-    "compile:tsc": "tsc -p ./",
-    "compile": "pnpm run compile:dts && pnpm run compile:tsc",
+    "compile:tsc": "tsup src/extension.ts --format cjs --out-dir out --external vscode --clean",
+    "compile:langflow": "rm -fr ./out/langflow && cd node_modules/langflow && npm install && npm run build && cd - && mv -f node_modules/langflow/build/ ./out/langflow",
+    "compile": "pnpm run compile:dts && pnpm run compile:tsc && pnpm run compile:langflow",
     "watch": "tsc -watch -p ./",
     "package": "vsce package --allow-star-activation --no-dependencies",
-    "package:dev": "pnpm run package && code-server --extensions-dir /code-server/extensions --install-extension ede-vscode-0.0.17.vsix --force",
-    "package:langflow": "cd node_modules/langflow && pnpm install && pnpm run build && cd ../.. && rm -rf out/langflow && mkdir -p out && cp -r node_modules/.pnpm/langflow@*/node_modules/langflow/build out/langflow"
+    "package:dev": "pnpm run package && code-server --extensions-dir /code-server/extensions --install-extension ede-vscode-0.0.17.vsix --force"
   },
   "devDependencies": {
     "@types/node": "^20.x",
@@ -78,14 +78,13 @@
     "@types/vscode": "^1.102.0",
     "@vscode/dts": "^0.4.1",
     "@vscode/vsce": "^3.6.0",
-    "langflow": "github:langflow-ai/langflow#path:/src/frontend",
-    "tailwindcss": "^4.1.17",
-    "typescript": "^5.9.3"
-  },
-  "dependencies": {
     "handlebars": "^4.7.8",
+    "langflow": "git+https://github.com/langflow-ai/langflow.git#3c5645d6a320ff2ba7b347cd9ecd2f3cf214e2ed&path:/src/frontend",
     "node-netstat": "^1.9.0",
     "ps-list": "^9.0.0",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "tailwindcss": "^4.1.17",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   }
 }

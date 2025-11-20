@@ -1,24 +1,23 @@
 import * as vscode from "vscode";
 import { Logger } from "./log";
 import { EdeProvider } from "./provider";
-import { showAIStudio } from "./views/ai-studio";
+import { LangflowWebview } from "./views/langflow";
 
 export async function activate(context: vscode.ExtensionContext) {
   const logger = new Logger();
   logger.log("info", "Activating Extension");
 
   try {
+    const langflow = new LangflowWebview(context, logger);
+
     const provider = new EdeProvider(context, logger);
     await provider.activate();
 
-    // Register AI Studio command
-    const aiStudioCommand = vscode.commands.registerCommand(
-      "ede-vscode.openAIStudio",
-      () => {
-        showAIStudio(context);
-      }
+    context.subscriptions.push(
+      vscode.commands.registerCommand("ede-vscode.open.langflow", () => {
+        langflow.activate();
+      })
     );
-    context.subscriptions.push(aiStudioCommand);
 
     logger.log("info", "Extension Activated");
   } catch (error) {

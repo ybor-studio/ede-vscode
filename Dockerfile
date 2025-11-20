@@ -72,7 +72,14 @@ ENV CACHE_BUST=1
 ENV CI=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
+RUN apt-get update && \
+    apt-get install -y git
 RUN npm install -g pnpm@10
+# PNPM pulls langflow from GitHub; force https so we don't need SSH keys during build
+RUN git config --global url."https://github.com/".insteadOf "git@github.com:" && \
+    git config --global url."https://github.com/".insteadOf "git@github.com/" && \
+    git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" && \
+    git config --global core.sshCommand "ssh -o StrictHostKeyChecking=no"
 
 WORKDIR /work
 COPY . .
@@ -93,5 +100,5 @@ RUN pipx install \
 COPY fs/usr /usr
 
 ENTRYPOINT [ "code-server" ]
-CMD ["--server-data-dir", "/code-server", "--accept-server-license-terms", "--host", "0.0.0.0", "--port", "2999", "--enable-proposed-api", "ybor-studio.ede-vscode", "--log", "trace"]
-EXPOSE 2999
+CMD ["--server-data-dir", "/code-server", "--accept-server-license-terms", "--host", "0.0.0.0", "--port", "2001", "--enable-proposed-api", "ybor-studio.ede-vscode", "--log", "trace"]
+EXPOSE 2001

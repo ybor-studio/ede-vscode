@@ -10,6 +10,5 @@ vsc-extension-quickstart.md
 **/*.ts
 
 # Exclude all node_modules by default
+!node_modules/langflow/build/**
 node_modules/**
-
-# out/ directory is included by default (contains compiled extension + langflow build)
