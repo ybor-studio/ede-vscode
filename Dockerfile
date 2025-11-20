@@ -16,7 +16,9 @@ RUN apt-get update \
     sudo
 
 RUN groupmod -n ede codespace \
-    && usermod -l ede -d /ede -m -u 1000 -c "ede" -g ede -aG docker -aG staff codespace
+    # Copy manually instead of relying on usermod -m; rename can fail on some hosts (e.g. GitHub Actions overlayfs).
+    && mv /home/codespace /ede \
+    && usermod -l ede -d /ede -u 1000 -c "ede" -g ede -aG docker -aG staff codespace
 
 RUN mv /etc/sudoers.d/codespace /etc/sudoers.d/ede \
     && sed -i 's/\/home\/codespace/\/ede/g' /etc/sudoers.d/ede \
