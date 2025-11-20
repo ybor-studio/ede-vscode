@@ -40,7 +40,7 @@ jobs:
         run: pnpm run package
 
   build:
-    runs-on: ubuntu-latest-xl
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
